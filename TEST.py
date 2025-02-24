@@ -11,9 +11,9 @@ df.columns = [
     "Nr", "Erststimme", "Zweitstimme", "Vorherige Teilnahme", "Wahlabsicht",
     "Parteivertrauen", "Interesse an Politik", "Vorbereitung im Unterricht",
     "Parteiziele verstehen", "Zukunftssicht", "Geschlecht",
-    "Info_Plakat", "Info_Wahlprogramme", "Info_TV", "Info_Zeitung", "Info_Keine",
-    "Social_TikTok", "Social_Instagram", "Social_X", "Social_YouTube",
-    "Social_Twitch", "Social_Keine"
+    "Plakat", "Wahlprogramme", "TV", "Zeitung", "Keine",
+    "TikTok", "Instagram", "X", "YouTube",
+    "Twitch", "Kein Socialmedia"
 ]
 
 df.columns2 = [
@@ -129,8 +129,8 @@ for col in df.columns2[1:]:  # Erste Spalte "Nr" ignorieren
         filters[col] = st.sidebar.multiselect(f"{col}", options=["Alle"] + list(unique_values), default=["Alle"])
 
 # Individuelle Mehrfachauswahl für Social Media & Informationsquellen mit "Alle" als Standard
-social_columns = ["Social_TikTok", "Social_Instagram", "Social_X", "Social_YouTube", "Social_Twitch", "Social_Keine"]
-info_columns = ["Info_Plakat", "Info_Wahlprogramme", "Info_TV", "Info_Zeitung", "Info_Keine"]
+social_columns = ["TikTok", "Instagram", "X", "YouTube", "Twitch", "Kein Socialmedia"]
+info_columns = ["Plakat", "Wahlprogramme", "TV", "Zeitung", "Keine"]
 
 filters["Social Media Nutzung"] = st.sidebar.multiselect("📱 Social Media Nutzung", options=["Alle"] + social_columns, default=["Alle"])
 filters["Informationsquellen"] = st.sidebar.multiselect("📰 Informationsquellen", options=["Alle"] + info_columns, default=["Alle"])
@@ -154,30 +154,89 @@ for partei in list(parteien_erststimme) + list(parteien_zweitstimme):
     if partei not in partei_farben:
         partei_farben[partei] = "#808080"  # Grau für unbekannte Parteien
 
-# 🗳️ Wahl-Ergebnisse als Kreisdiagramme ganz oben
+# 🗳️ Wahl-Ergebnisse mit Tabs
 st.write("### 🗳️ Wahlergebnisse")
 
-col1, col2 = st.columns(2)
+tab1, tab2 = st.tabs(["📊 Kreisdiagramme", "📈 Balkendiagramme"])
 
-# Erststimmen-Kreisdiagramm
-fig_erststimme = px.pie(
-    filtered_df,
-    names="Erststimme",
-    title="Verteilung der Erststimmen",
-    color="Erststimme",
-    color_discrete_map=partei_farben
-)
-col1.plotly_chart(fig_erststimme, use_container_width=True)
+with tab1:
+    st.write("#### 📊 Erst- und Zweitstimmen als Kreisdiagramm")
+    col1, col2 = st.columns(2)
 
-# Zweitstimmen-Kreisdiagramm
-fig_zweitstimme = px.pie(
-    filtered_df,
-    names="Zweitstimme",
-    title="Verteilung der Zweitstimmen",
-    color="Zweitstimme",
-    color_discrete_map=partei_farben
-)
-col2.plotly_chart(fig_zweitstimme, use_container_width=True)
+    with col1:
+        fig_erststimme = px.pie(
+            filtered_df,
+            names="Erststimme",
+            title="Verteilung der Erststimmen",
+            color="Erststimme",
+            color_discrete_map=partei_farben
+        )
+        fig_erststimme.update_layout(
+            title_font_size=22,
+            legend_font_size=18
+        )
+        st.plotly_chart(fig_erststimme, use_container_width=True)
+
+    with col2:
+        fig_zweitstimme = px.pie(
+            filtered_df,
+            names="Zweitstimme",
+            title="Verteilung der Zweitstimmen",
+            color="Zweitstimme",
+            color_discrete_map=partei_farben
+        )
+        fig_zweitstimme.update_layout(
+            title_font_size=22,
+            legend_font_size=16
+        )
+        st.plotly_chart(fig_zweitstimme, use_container_width=True)
+
+with tab2:
+    st.write("#### 📈 Erst- und Zweitstimmen als Balkendiagramm")
+    col1, col2 = st.columns(2)
+
+    # Korrigierte Version für Balkendiagramme
+    erststimme_counts = filtered_df["Erststimme"].value_counts().reset_index()
+    erststimme_counts.columns = ["Kandidat", "Anzahl"]
+    erststimme_counts["Prozent"] = (erststimme_counts["Anzahl"] / erststimme_counts["Anzahl"].sum()) * 100
+
+    zweitstimme_counts = filtered_df["Zweitstimme"].value_counts().reset_index()
+    zweitstimme_counts.columns = ["Partei", "Anzahl"]
+    zweitstimme_counts["Prozent"] = (zweitstimme_counts["Anzahl"] / zweitstimme_counts["Anzahl"].sum()) * 100
+
+    with col1:
+        fig_erststimme_bar = px.bar(
+            erststimme_counts,
+            x="Kandidat",
+            y="Anzahl",
+            text=erststimme_counts.apply(lambda row: f"{row['Prozent']:.1f}% ({row['Anzahl']})", axis=1),
+            title="Erststimmen Verteilung",
+            color="Kandidat",
+            color_discrete_map=partei_farben
+        )
+        fig_erststimme_bar.update_layout(
+            title_font_size=22,
+            xaxis_tickfont_size=14,
+            showlegend=False
+        )
+        st.plotly_chart(fig_erststimme_bar, use_container_width=True)
+
+    with col2:
+        fig_zweitstimme_bar = px.bar(
+            zweitstimme_counts,
+            x="Partei",
+            y="Anzahl",
+            text=zweitstimme_counts.apply(lambda row: f"{row['Prozent']:.1f}% ({row['Anzahl']})", axis=1),
+            title="Zweitstimmen Verteilung",
+            color="Partei",
+            color_discrete_map=partei_farben
+        )
+        fig_zweitstimme_bar.update_layout(
+            title_font_size=22,
+            xaxis_tickfont_size=14,
+            showlegend=False
+        )
+        st.plotly_chart(fig_zweitstimme_bar, use_container_width=True)
 
 # 🔢 Berechnung möglicher Koalitionen
 st.write("### 🤝 Mögliche Koalitionen")
@@ -224,6 +283,10 @@ def plot_koalition(labels, sizes, title):
         hole=0.3,
         color=labels,
         color_discrete_map=partei_farben
+    )
+    fig.update_layout(
+        title_font_size=22,
+        legend_font_size=16
     )
     return fig
 
@@ -278,16 +341,32 @@ col3, col4 = st.columns(2)
 
 with col3:
     fig1 = px.histogram(filtered_df, x="Parteivertrauen", title="Vertrauen in Parteien", color="Parteivertrauen")
+    fig1.update_layout(
+        title_font_size=22,
+        legend_font_size=16
+    )
     st.plotly_chart(fig1, use_container_width=True)
 
     fig2 = px.pie(filtered_df, names="Zukunftssicht", title="Wie sehen die Schüler die Zukunft?")
+    fig2.update_layout(
+        title_font_size=22,
+        legend_font_size=16
+    )
     st.plotly_chart(fig2, use_container_width=True)
 
 with col4:
     fig3 = px.histogram(filtered_df, x="Geschlecht", title="Geschlechterverteilung", color="Geschlecht")
+    fig3.update_layout(
+        title_font_size=22,
+        legend_font_size=16
+    )
     st.plotly_chart(fig3, use_container_width=True)
 
     fig4 = px.histogram(filtered_df, x="Wahlabsicht", title="Wahlbeteiligung", color="Wahlabsicht")
+    fig4.update_layout(
+        title_font_size=22,
+        legend_font_size=16
+    )
     st.plotly_chart(fig4, use_container_width=True)
 
 # 📱 Nutzung von Social Media zur Information
@@ -296,35 +375,101 @@ st.write("### 📱 Nutzung von Social Media zur Information")
 social_counts = filtered_df[social_columns].apply(lambda x: (x == "WAHR").sum())
 
 fig_social = px.bar(social_counts, x=social_counts.index, y=social_counts.values, title="Social Media Nutzung (Gefiltert)", labels={"y": "Anzahl Personen"})
+fig_social.update_layout(
+    title_font_size=22,
+    legend_font_size=16
+)
 st.plotly_chart(fig_social, use_container_width=True)
 
-# ❓ Analyse aller Fragen mit Geschlechteraufteilung
-st.write("### ❓ Analyse aller Fragen mit Geschlechteraufteilung")
+# ❓ Analyse aller Fragen mit Geschlechter-Aufteilung (nur zusammengefasste Social Media & Infoquellen)
+st.write("### ❓ Analyse aller Fragen nach Geschlechtern")
 
-frage = st.selectbox("Wähle eine Frage:", df.columns[1:])  # Alle relevanten Fragen außer der ersten Spalte
+# **Dropdown-Menü für Fragen + Zusammenfassungen für Social Media & Informationsquellen**
+fragen_liste = [frage for frage in df.columns[1:] if frage not in ["Geschlecht"] + social_columns + info_columns]  # Einzelne Social-Media- und Info-Optionen entfernen
+fragen_liste.insert(0, "📱 Social Media Nutzung")  # Nur zusammengefasst
+fragen_liste.insert(1, "📰 Informationsquellen")  # Nur zusammengefasst
+
+# Benutzer wählt eine Frage aus
+frage = st.selectbox("Wähle eine Frage:", fragen_liste)
 
 if frage:
-    # Dynamisch alle vorkommenden Geschlechter aus der CSV auslesen
-    vorhandene_geschlechter = df["Geschlecht"].dropna().unique()
+    vorhandene_geschlechter = filtered_df["Geschlecht"].dropna().unique()
 
-    # Antworten pro Geschlecht zählen
-    antworten_counts = df.groupby([frage, "Geschlecht"]).size().reset_index(name="Anzahl")
+    if frage == "📱 Social Media Nutzung":
+        st.write("📱 **Zusammenfassung aller Social Media Nutzungen nach Geschlecht**")
 
-    # Sicherstellen, dass alle gefundenen Geschlechter in der Tabelle enthalten sind
-    for geschlecht in vorhandene_geschlechter:
-        if geschlecht not in antworten_counts["Geschlecht"].values:
-            antworten_counts = pd.concat([antworten_counts, pd.DataFrame({frage: [frage], "Geschlecht": [geschlecht], "Anzahl": [0]})])
+        social_data = filtered_df.melt(id_vars=["Geschlecht"], value_vars=social_columns, var_name="Social Media", value_name="Nutzung")
+        social_data = social_data[social_data["Nutzung"] == "WAHR"].drop(columns=["Nutzung"])
 
-    # Balkendiagramm erstellen mit dynamischen Geschlechtern
-    fig_frage = px.bar(
-        antworten_counts,
-        x=frage,
-        y="Anzahl",
-        color="Geschlecht",
-        barmode="group",
-        title=f"Antwortverteilung für: {frage} (nach Geschlecht)"
-    )
-    st.plotly_chart(fig_frage, use_container_width=True)
+        social_counts = social_data.groupby(["Social Media", "Geschlecht"]).size().reset_index(name="Anzahl")
+
+        for geschlecht in vorhandene_geschlechter:
+            for platform in social_columns:
+                if not ((social_counts["Social Media"] == platform) & (social_counts["Geschlecht"] == geschlecht)).any():
+                    social_counts = pd.concat([social_counts, pd.DataFrame({"Social Media": [platform], "Geschlecht": [geschlecht], "Anzahl": [0]})])
+
+        fig_social = px.bar(
+            social_counts,
+            x="Social Media",
+            y="Anzahl",
+            color="Geschlecht",
+            barmode="group",
+            title="Social Media Nutzung nach Geschlecht"
+        )
+        fig_social.update_layout(
+            title_font_size=22,
+            legend_font_size=16
+        )
+        st.plotly_chart(fig_social, use_container_width=True)
+
+    elif frage == "📰 Informationsquellen":
+        st.write("📰 **Zusammenfassung aller Informationsquellen nach Geschlecht**")
+
+        info_data = filtered_df.melt(id_vars=["Geschlecht"], value_vars=info_columns, var_name="Informationsquelle", value_name="Nutzung")
+        info_data = info_data[info_data["Nutzung"] == "WAHR"].drop(columns=["Nutzung"])
+
+        info_counts = info_data.groupby(["Informationsquelle", "Geschlecht"]).size().reset_index(name="Anzahl")
+
+        for geschlecht in vorhandene_geschlechter:
+            for quelle in info_columns:
+                if not ((info_counts["Informationsquelle"] == quelle) & (info_counts["Geschlecht"] == geschlecht)).any():
+                    info_counts = pd.concat([info_counts, pd.DataFrame({"Informationsquelle": [quelle], "Geschlecht": [geschlecht], "Anzahl": [0]})])
+
+        fig_info = px.bar(
+            info_counts,
+            x="Informationsquelle",
+            y="Anzahl",
+            color="Geschlecht",
+            barmode="group",
+            title="Informationsquellen nach Geschlecht"
+        )
+        fig_info.update_layout(
+            title_font_size=22,
+            legend_font_size=16
+        )
+        st.plotly_chart(fig_info, use_container_width=True)
+
+    else:
+        antworten_counts = filtered_df.groupby([frage, "Geschlecht"]).size().reset_index(name="Anzahl")
+
+        for geschlecht in vorhandene_geschlechter:
+            for antwort in filtered_df[frage].dropna().unique():
+                if not ((antworten_counts[frage] == antwort) & (antworten_counts["Geschlecht"] == geschlecht)).any():
+                    antworten_counts = pd.concat([antworten_counts, pd.DataFrame({frage: [antwort], "Geschlecht": [geschlecht], "Anzahl": [0]})])
+
+        fig_frage = px.bar(
+            antworten_counts,
+            x=frage,
+            y="Anzahl",
+            color="Geschlecht",
+            barmode="group",
+            title=f"Antwortverteilung für: {frage} nach Geschlecht"
+        )
+        fig_frage.update_layout(
+            title_font_size=22,
+            legend_font_size=16
+        )
+        st.plotly_chart(fig_frage, use_container_width=True)
 
 # 📋 Gefilterte Ergebnisse als Tabelle
 st.write("### 📋 Gefilterte Ergebnisse")
