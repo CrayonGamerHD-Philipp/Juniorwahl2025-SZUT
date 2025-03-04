@@ -2,11 +2,11 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 
-# CSV-Datei laden
+# Load CSV-File
 file_path = "Juniorwahl_2025_Auwertung_CSV_v1.csv"
 df = pd.read_csv(file_path, encoding="UTF-8", delimiter=";")
 
-# Spalten umbenennen
+# name columns
 df.columns = [
     "Nr", "Erststimme", "Zweitstimme", "Vorherige Teilnahme", "Wahlabsicht",
     "Parteivertrauen", "Interesse an Politik", "Vorbereitung im Unterricht",
@@ -22,7 +22,7 @@ df.columns2 = [
     "Parteiziele verstehen", "Zukunftssicht", "Geschlecht"
 ]
 
-# Farbkodierung der Parteien
+# Set Party Colores
 partei_farben = {
     "CDU": "#000000",  # Schwarz
     "Sandra Schmull / CDU": "#000000",
@@ -52,7 +52,7 @@ st.set_page_config(
     page_icon="🗳️",
     initial_sidebar_state="expanded"
 )
-# CSS hinzufügen, um das Menü auszublenden
+# Add a Infotext and Remove some default buttons
 st.markdown(
     """
     <style>
@@ -136,42 +136,38 @@ st.markdown("""
 
 st.title("📊 Juniorwahl 2025 - Dynamische Auswertung")
 
-# Erstelle Mehrfachauswahl-Filter für alle Kategorien links im Seitenbereich
+# Add filter menu
 st.sidebar.header("🔍 Filter Optionen")
 
 filters = {}
-for col in df.columns2[1:]:  # Erste Spalte "Nr" ignorieren
+for col in df.columns2[1:]:
     unique_values = df[col].dropna().unique()
-    if len(unique_values) > 1 and len(unique_values) < 20:  # Nur Kategorien mit wenigen Werten als Auswahloption
+    if len(unique_values) > 1 and len(unique_values) < 20:
         filters[col] = st.sidebar.multiselect(f"{col}", options=["Alle"] + list(unique_values), default=["Alle"])
 
-# Individuelle Mehrfachauswahl für Social Media & Informationsquellen mit "Alle" als Standard
 social_columns = ["TikTok", "Instagram", "X", "YouTube", "Twitch", "Kein Socialmedia"]
 info_columns = ["Plakat", "Wahlprogramme", "TV", "Zeitung", "Keine"]
 
 filters["Social Media Nutzung"] = st.sidebar.multiselect("📱 Social Media Nutzung", options=["Alle"] + social_columns, default=["Alle"])
 filters["Informationsquellen"] = st.sidebar.multiselect("📰 Informationsquellen", options=["Alle"] + info_columns, default=["Alle"])
 
-# Filter anwenden
 filtered_df = df.copy()
 for col, values in filters.items():
-    if "Alle" not in values:  # Nur filtern, wenn nicht "Alle" gewählt ist
+    if "Alle" not in values:
         if col in ["Social Media Nutzung", "Informationsquellen"]:
             filtered_df = filtered_df[filtered_df[values].eq("WAHR").any(axis=1)]
         else:
             filtered_df = filtered_df[filtered_df[col].isin(values)]
 
-# Sicherstellen, dass alle Parteien in den Farben enthalten sind
-parteien_erststimme = filtered_df["Erststimme"].unique()
-parteien_zweitstimme = filtered_df["Zweitstimme"].unique()
+parteien_firstvote = filtered_df["Erststimme"].unique()
+parteien_secondvote = filtered_df["Zweitstimme"].unique()
 
 
-# Fehlende Parteien in der Farbzuordnung ergänzen (damit keine Fehler auftreten)
-for partei in list(parteien_erststimme) + list(parteien_zweitstimme):
+for partei in list(parteien_firstvote) + list(parteien_secondvote):
     if partei not in partei_farben:
-        partei_farben[partei] = "#808080"  # Grau für unbekannte Parteien
+        partei_farben[partei] = "#808080"
 
-# 🗳️ Wahl-Ergebnisse mit Tabs
+# ️ Wahl-Ergebnisse mit Tabs
 st.write("### 🗳️ Wahlergebnisse")
 
 tab1, tab2 = st.tabs(["📊 Kreisdiagramme", "📈 Balkendiagramme"])
@@ -181,79 +177,78 @@ with tab1:
     col1, col2 = st.columns(2)
 
     with col1:
-        fig_erststimme = px.pie(
+        fig_firstvote = px.pie(
             filtered_df,
             names="Erststimme",
             title="Verteilung der Erststimmen",
             color="Erststimme",
             color_discrete_map=partei_farben
         )
-        fig_erststimme.update_layout(
+        fig_firstvote.update_layout(
             title_font_size=22,
             legend_font_size=18
         )
-        st.plotly_chart(fig_erststimme, use_container_width=True)
+        st.plotly_chart(fig_firstvote, use_container_width=True)
 
     with col2:
-        fig_zweitstimme = px.pie(
+        fig_secondvote = px.pie(
             filtered_df,
             names="Zweitstimme",
             title="Verteilung der Zweitstimmen",
             color="Zweitstimme",
             color_discrete_map=partei_farben
         )
-        fig_zweitstimme.update_layout(
+        fig_secondvote.update_layout(
             title_font_size=22,
             legend_font_size=16
         )
-        st.plotly_chart(fig_zweitstimme, use_container_width=True)
+        st.plotly_chart(fig_secondvote, use_container_width=True)
 
 with tab2:
     st.write("#### 📈 Erst- und Zweitstimmen als Balkendiagramm")
     col1, col2 = st.columns(2)
 
-    # Korrigierte Version für Balkendiagramme
-    erststimme_counts = filtered_df["Erststimme"].value_counts().reset_index()
-    erststimme_counts.columns = ["Kandidat", "Anzahl"]
-    erststimme_counts["Prozent"] = (erststimme_counts["Anzahl"] / erststimme_counts["Anzahl"].sum()) * 100
+    firstvote_counts = filtered_df["Erststimme"].value_counts().reset_index()
+    firstvote_counts.columns = ["Kandidat", "Anzahl"]
+    firstvote_counts["Prozent"] = (firstvote_counts["Anzahl"] / firstvote_counts["Anzahl"].sum()) * 100
 
-    zweitstimme_counts = filtered_df["Zweitstimme"].value_counts().reset_index()
-    zweitstimme_counts.columns = ["Partei", "Anzahl"]
-    zweitstimme_counts["Prozent"] = (zweitstimme_counts["Anzahl"] / zweitstimme_counts["Anzahl"].sum()) * 100
+    secondvote_counts = filtered_df["Zweitstimme"].value_counts().reset_index()
+    secondvote_counts.columns = ["Partei", "Anzahl"]
+    secondvote_counts["Prozent"] = (secondvote_counts["Anzahl"] / secondvote_counts["Anzahl"].sum()) * 100
 
     with col1:
-        fig_erststimme_bar = px.bar(
-            erststimme_counts,
+        fig_firstvote_bar = px.bar(
+            firstvote_counts,
             x="Kandidat",
             y="Anzahl",
-            text=erststimme_counts.apply(lambda row: f"{row['Prozent']:.1f}% ({row['Anzahl']})", axis=1),
+            text=firstvote_counts.apply(lambda row: f"{row['Prozent']:.1f}% ({row['Anzahl']})", axis=1),
             title="Erststimmen Verteilung",
             color="Kandidat",
             color_discrete_map=partei_farben
         )
-        fig_erststimme_bar.update_layout(
+        fig_firstvote_bar.update_layout(
             title_font_size=22,
             xaxis_tickfont_size=14,
             showlegend=False
         )
-        st.plotly_chart(fig_erststimme_bar, use_container_width=True)
+        st.plotly_chart(fig_firstvote_bar, use_container_width=True)
 
     with col2:
-        fig_zweitstimme_bar = px.bar(
-            zweitstimme_counts,
+        fig_secondvote_bar = px.bar(
+            secondvote_counts,
             x="Partei",
             y="Anzahl",
-            text=zweitstimme_counts.apply(lambda row: f"{row['Prozent']:.1f}% ({row['Anzahl']})", axis=1),
+            text=secondvote_counts.apply(lambda row: f"{row['Prozent']:.1f}% ({row['Anzahl']})", axis=1),
             title="Zweitstimmen Verteilung",
             color="Partei",
             color_discrete_map=partei_farben
         )
-        fig_zweitstimme_bar.update_layout(
+        fig_secondvote_bar.update_layout(
             title_font_size=22,
             xaxis_tickfont_size=14,
             showlegend=False
         )
-        st.plotly_chart(fig_zweitstimme_bar, use_container_width=True)
+        st.plotly_chart(fig_secondvote_bar, use_container_width=True)
 
 # 🔢 Berechnung möglicher Koalitionen
 st.write("### 🤝 Mögliche Koalitionen")
@@ -398,15 +393,12 @@ fig_social.update_layout(
 )
 st.plotly_chart(fig_social, use_container_width=True)
 
-# ❓ Analyse aller Fragen mit Geschlechter-Aufteilung (nur zusammengefasste Social Media & Infoquellen)
 st.write("### ❓ Analyse aller Fragen nach Geschlechtern")
 
-# **Dropdown-Menü für Fragen + Zusammenfassungen für Social Media & Informationsquellen**
 fragen_liste = [frage for frage in df.columns[1:] if frage not in ["Geschlecht"] + social_columns + info_columns]  # Einzelne Social-Media- und Info-Optionen entfernen
-fragen_liste.insert(0, "📱 Social Media Nutzung")  # Nur zusammengefasst
-fragen_liste.insert(1, "📰 Informationsquellen")  # Nur zusammengefasst
+fragen_liste.insert(0, "📱 Social Media Nutzung")
+fragen_liste.insert(1, "📰 Informationsquellen")
 
-# Benutzer wählt eine Frage aus
 frage = st.selectbox("Wähle eine Frage:", fragen_liste)
 
 if frage:
@@ -487,10 +479,6 @@ if frage:
             legend_font_size=16
         )
         st.plotly_chart(fig_frage, use_container_width=True)
-
-# 📋 Gefilterte Ergebnisse als Tabelle
-#st.write("### 📋 Gefilterte Ergebnisse")
-#st.dataframe(filtered_df, height=500)
 
 st.markdown("---")  # Trennlinie
 st.markdown("🚀 powered by Philipp Hethey  |  ITA24", unsafe_allow_html=True)
