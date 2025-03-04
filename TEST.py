@@ -69,24 +69,41 @@ st.markdown(
 st.markdown("""
 <style>
     .info-box {
-        background-color: #181b24;
         padding: 15px;
         border-radius: 5px;
         box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
     }
-    .info-box h1 {
-        color: #ffffff;
-        font-size: 28px;
-        text-align: center;
+    /* Dark Mode */
+    @media (prefers-color-scheme: dark) {
+        .info-box {
+            background-color: #181b24;
+            color: #ffffff;
+        }
+        .info-box h1, .info-box h2 {
+            color: #ffffff;
+        }
+        .info-box p, .info-box li {
+            color: #d1d1d1;
+        }
+        .info-box a {
+            color: #1E90FF;
+        }
     }
-    .info-box p, .info-box li {
-        color: #ffffff;
-        font-size: 18px;
-        line-height: 1.5;
-    }
-    .info-box a {
-        color: #1E90FF;
-        font-weight: bold;
+    /* Light Mode */
+    @media (prefers-color-scheme: light) {
+        .info-box {
+            background-color: #f8f9fa;
+            color: #000000;
+        }
+        .info-box h1, .info-box h2 {
+            color: #000000;
+        }
+        .info-box p, .info-box li {
+            color: #333333;
+        }
+        .info-box a {
+            color: #007BFF;
+        }
     }
 </style>
 
@@ -472,8 +489,8 @@ if frage:
         st.plotly_chart(fig_frage, use_container_width=True)
 
 # 📋 Gefilterte Ergebnisse als Tabelle
-st.write("### 📋 Gefilterte Ergebnisse")
-st.dataframe(filtered_df, height=500)
+#st.write("### 📋 Gefilterte Ergebnisse")
+#st.dataframe(filtered_df, height=500)
 
 st.markdown("---")  # Trennlinie
 st.markdown("🚀 powered by Philipp Hethey  |  ITA24", unsafe_allow_html=True)
